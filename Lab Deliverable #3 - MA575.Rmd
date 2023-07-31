@@ -1,0 +1,110 @@
+---
+title: 'Lab Deliverable #3 - MA575'
+author: "Ethan Biddle"
+date: "3/20/2023"
+output: word_document
+---
+
+```{r setup}
+library(car) 
+library(dplyr)
+library(ggplot2)
+library(hrbrthemes)
+library(GGally)
+library(gridExtra)
+
+theme_update(plot.title = element_text(hjust = 0.5))
+
+library("readxl")
+setwd("/Users/ethanbiddle")
+BikeData <- read.csv("day.csv")
+
+BikeData[10] = BikeData[10]*41 #adjusting temp values to not be decimals
+BikeData[11] = BikeData[11]*41 #adjusting temp values to not be decimals
+BikeData$weathersit[BikeData$weathersit!=1]<-0 #weather into dummy variable
+attach(BikeData)
+ProjData <- data.frame(casual, temp, weathersit, holiday)
+detach(BikeData)
+attach(ProjData)
+```
+
+```{r Initial OLS}
+m.ols <- lm(casual~temp+weathersit+holiday)
+summary(m.ols)
+plot(m.ols)
+          
+boxplot(ProjData)
+```
+
+
+
+```{r Trimming and Transforming}
+Q <- quantile(casual, probs=c(.25, .75), na.rm = FALSE)
+iqr <- IQR(casual)
+up <-  Q[2]+1.5*iqr # Upper Range  
+low<- Q[1]-1.5*iqr # Lower Range
+newProjData <- subset(ProjData, casual > (Q[1] - 1.5*iqr) & casual < (Q[2]+1.5*iqr))
+boxplot(newProjData)
+
+shapiro.test(casual)
+sqcasual=sqrt(casual)
+shapiro.test(sqcasual)
+ProjData_Trans = data.frame(sqcasual, temp, weathersit, holiday)
+```
+
+```{r New OLS}
+attach(ProjData_Trans)
+
+m.ols2 <- lm(sqcasual~temp+weathersit+holiday)
+summary(m.ols2)
+plot(m.ols2)
+```
+
+
+```{r Prediction Models}
+prediction = predict(m.ols2)
+
+print(ggplot(ProjData_Trans, aes(x=temp+weathersit+holiday, y=sqcasual)) + geom_point(size = 0.1) +  
+        geom_line(mapping = aes(x = temp+weathersit+holiday, y = prediction, color="blue")) +
+        scale_color_discrete(name = "Prediction", labels = c("Temp+Weathersit+Holiday")) +
+        ggtitle("LS Predictions") )
+```
+
+```{r Stan Residuals}
+StanResLS <- rstandard(m.ols2)
+dataLS <- data.frame(temp+weathersit+holiday, StanResLS)
+ggplot(dataLS, aes(x=temp+weathersit+holiday, y=StanResLS)) + geom_point(size = 0.1) +
+  geom_hline(yintercept=2,color='blue') + geom_hline(yintercept=-2, color='blue') +
+  ggtitle("Standarized Residuals for OLS")
+```
+
+```{r Fitted Residuals}
+Fitted  = fitted(m.ols2)
+dataLSFitted <- data.frame(Fitted,StanResLS)
+ggplot(dataLS, aes(x=Fitted, y=StanResLS)) + geom_point(size = 0.1) +
+  geom_hline(yintercept=2,color='blue') + geom_hline(yintercept=-2, color='blue') +
+  ggtitle("Standarized Residuals for OLS")
+```
+
+```{r Corr Plots}
+ggpairs(ProjData_Trans, upper = list(continuous = wrap("points", alpha = 0.3,    size=0.1)), 
+        lower = list(continuous = wrap('cor', size = 4)))
+
+X <- cbind(casual, temp, weathersit, holiday)
+c <- cor(X)
+round(c,3)
+```
+
+```{r MLS on Data}
+m.mls <- lm(sqcasual ~ temp+weathersit+holiday)
+summary(m.mls)
+
+StanResMLS <- rstandard(m.mls)
+dataMLS <- data.frame(sqcasual,StanResMLS)
+ggplot() + geom_point(data=dataLS, aes(x=temp+weathersit+holiday, y=StanResLS), size = 0.1) +
+  geom_point(data=dataMLS, aes(x=temp+weathersit+holiday, y=StanResMLS, color = "MLS"), size = 0.1) +
+  geom_hline(yintercept=2,color='blue') + geom_hline(yintercept=-2, color='blue') +
+  scale_color_manual(name = element_blank(), labels = c("MLS","Quadratic"), values = c("red","blue")) +
+  labs(y = "Standarized Residual") + ggtitle("Standarized Residuals Plot")
+
+```

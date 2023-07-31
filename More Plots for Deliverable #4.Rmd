@@ -1,0 +1,98 @@
+---
+title: 'Lab Deliverable #4 Part 2 - MA575 - C2'
+author: "Ethan Biddle"
+date: "4/12/2023"
+output: word_document
+---
+```{r 0}
+library(car) 
+library(dplyr)
+library(ggplot2)
+library(hrbrthemes)
+library(GGally)
+library(gridExtra)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+
+theme_update(plot.title = element_text(hjust = 0.5))
+
+library("readxl")
+setwd("/Users/ethanbiddle")
+BikeData <- read.csv("day.csv")
+
+attach(BikeData)
+BikeData11 <- BikeData %>% filter(yr==0)
+BikeData12 <- BikeData %>% filter(yr==1)
+attach(BikeData11)
+
+summary(BikeData11) 
+summary(BikeData12)
+```
+
+```{r 1}
+boxplot(cnt ~ workingday, data = BikeData11, main = "Number of Bike Rentals on Working and Non-Working Days", xlab = "Working Day (1 = yes, 0 = no)", ylab = "Number of Bike Rentals", col=c("red", "green"))
+boxplot(cnt ~ weathersit, data = BikeData11, main = "Number of Bike Rentals in Different Climates", xlab = "Type of Climate (1 = Clear, 2 = Cloudy,  3 = Rain)", ylab = "Number of Bike Rentals", col=c("white", "grey", "cadetblue1"))
+boxplot(cnt ~ season, data = BikeData11, main = "Number of Bike Rentals in Different Seasons", xlab = "Season (1 = winter, 2 = spring, 3 = summer, 4 = fall)", ylab = "Number of Bike Rentals", col=c("black", "chartreuse", "gold", "darkorange"), border=c("darkorange", "black", "black", "black"))
+boxplot(cnt ~ holiday, data = BikeData11, main = "Number of Bike Rentals on Holidays and Non-Holidays", xlab = "Holiday (1 = yes, 0 = no)", ylab = "Number of Bike Rentals", col=c("red", "green"))
+```
+
+
+```{r 2}
+work_hol <-table(weathersit, season)
+chisq.test(work_hol)
+```
+
+
+```{r 3}
+summary(glm(cnt ~ workingday, data = BikeData11))
+summary(glm(cnt ~ weathersit, data = BikeData11))
+summary(glm(cnt ~ season, data = BikeData11))
+summary(glm(cnt ~ holiday, data = BikeData11))
+```
+
+```{r 4}
+data1 <- data.frame(cnt,temp,atemp,hum,windspeed)
+ggpairs(data1, upper = list(continuous = wrap("points", alpha = 0.3,    size=0.1)),
+        lower = list(continuous = wrap('cor', size = 4)))
+```
+
+```{r 5}
+summary(lm(cnt~temp))
+summary(lm(cnt~atemp))
+summary(lm(cnt~hum))
+summary(lm(cnt~windspeed))
+```
+
+```{r 6}
+par(mfrow=c(2,2))
+m1.1.ols <- lm(cnt~atemp, data = BikeData11)
+summary(m1.1.ols)
+plot(m1.1.ols)
+
+m1.1.quadls <- lm(cnt ~ atemp + I(atemp^2)+ I(atemp^3)  +season + windspeed, data = BikeData11)
+summary(m1.1.quadls)
+plot(m1.1.quadls)
+```
+
+```{r 7}
+par(mfrow=c(2,2))
+
+model1 <- lm(cnt ~ atemp + season + windspeed, data = BikeData11)
+summary(model1)
+plot(model1)
+
+
+m1.2.quadls <- lm(cnt ~ atemp + I(atemp^2)  + season + hum + windspeed, data = BikeData11)
+summary(m1.2.quadls)
+plot(m1.2.quadls)
+
+m1.3.quadls <- lm(cnt ~ atemp + I(atemp^2)  +season + windspeed, data = BikeData11)
+summary(m1.3.quadls)
+plot(m1.3.quadls)
+```
+
+
+
+

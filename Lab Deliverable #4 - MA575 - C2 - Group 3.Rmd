@@ -1,0 +1,68 @@
+---
+title: 'Lab Deliverable #4 - MA575'
+author: "Ethan Biddle"
+date: "4/10/2023"
+output: word_document
+---
+
+```{r setup}
+library(car) 
+library(dplyr)
+library(ggplot2)
+library(hrbrthemes)
+library(GGally)
+library(gridExtra)
+
+theme_update(plot.title = element_text(hjust = 0.5))
+
+library("readxl")
+setwd("/Users/ethanbiddle")
+BikeData <- read.csv("day.csv")
+
+attach(BikeData)
+BikeData11 <- BikeData %>% filter(yr==0)
+BikeData12 <- BikeData %>% filter(yr==1)
+detach(BikeData)
+attach(BikeData11)
+BikeData11 <- data.frame(cnt, atemp, season, hum, registered, windspeed)
+detach(BikeData11)
+attach(BikeData12)
+BikeData12 <- data.frame(cnt, atemp, season, hum, registered, windspeed)
+detach(BikeData12)
+attach(BikeData11)
+```
+
+```{r cor}
+cor(BikeData11)
+```
+
+```{r outliers}
+boxplot(cnt)
+boxplot.stats(cnt)$out
+```
+
+```{r prediction}
+attach(BikeData11)
+model <- lm(cnt ~ atemp + I(atemp^2)
+            + hum + season + windspeed)
+
+summary(model)
+plot(model)
+head(predict(model, newdata = BikeData12, interval = 'confidence'))
+
+mean(predict(model, newdata = BikeData12))
+mean(BikeData12$cnt)
+```
+
+```{r prediction 2}
+model2 <- lm(cnt ~ atemp + I(atemp^2) + I(atemp^3)
+             + hum + registered)
+
+summary(model2)
+plot(model2)
+
+head(predict(model2, newdata = BikeData12, interval = 'confidence'))
+
+mean(predict(model2, newdata = BikeData12))
+mean(BikeData12$cnt)
+```
